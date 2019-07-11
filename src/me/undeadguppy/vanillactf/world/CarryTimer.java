@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import me.undeadguppy.vanillactf.game.Game;
 import me.undeadguppy.vanillactf.teams.Team;
 import net.md_5.bungee.api.ChatColor;
 
@@ -13,18 +14,33 @@ public class CarryTimer extends BukkitRunnable {
 
 	private Player player;
 	private Team team;
+	private Game game;
 
-	public CarryTimer(Player player, Team team) {
+	public CarryTimer(Player player, Team team, Game game) {
 		this.player = player;
 		this.team = team;
+		this.game = game;
 	}
 
 	@Override
 	public void run() {
-		if (!player.getInventory().contains(new ItemStack(Material.NETHERRACK))
-				|| !player.getInventory().contains(new ItemStack(Material.SOUL_SAND))) {
+		if (!game.isRunning()) {
 			cancel();
-			return;
+		}
+
+		switch (team) {
+		case BADGER:
+			if (!player.getInventory().contains(new ItemStack(Material.SOUL_SAND))) {
+				cancel();
+				break;
+			}
+		case AARDVARK:
+			if (!player.getInventory().contains(new ItemStack(Material.NETHERRACK))) {
+				cancel();
+				break;
+			}
+		default:
+			break;
 		}
 
 		Bukkit.getServer()

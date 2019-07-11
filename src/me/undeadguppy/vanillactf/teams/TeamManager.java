@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import me.undeadguppy.vanillactf.game.Game;
@@ -19,10 +20,8 @@ public class TeamManager {
 	private HashSet<UUID> bTeam;
 	private HashMap<Team, Integer> captures;
 	private HashMap<UUID, Integer> lives;
-	private Game game;
 
 	public TeamManager(Game game) {
-		this.game = game;
 		this.aTeam = new HashSet<UUID>();
 		this.bTeam = new HashSet<UUID>();
 		this.teams = new HashMap<UUID, Team>();
@@ -62,7 +61,8 @@ public class TeamManager {
 
 	public void setTeam(Player player, Team team) {
 		if (!hasTeam(player) && !lives.containsKey(player.getUniqueId()))
-			this.teams.put(player.getUniqueId(), team);
+			this.lives.put(player.getUniqueId(), 3);
+		this.teams.put(player.getUniqueId(), team);
 		switch (team) {
 		case AARDVARK:
 			this.aTeam.add(player.getUniqueId());
@@ -71,7 +71,6 @@ public class TeamManager {
 		default:
 			break;
 		}
-		this.lives.put(player.getUniqueId(), 3);
 
 	}
 
@@ -99,7 +98,7 @@ public class TeamManager {
 		}
 		teams.put(player.getUniqueId(), Team.SPECTATOR);
 		player.setGameMode(GameMode.SPECTATOR);
-		player.teleport(game.getWorldManager().getCenter());
+		player.teleport(new Location(Bukkit.getWorld("world"), 500, 100, 505));
 	}
 
 	public Team getTeam(Player player) {

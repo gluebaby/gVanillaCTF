@@ -17,6 +17,10 @@ public class GameCounter extends BukkitRunnable {
 	@Override
 	public void run() {
 
+		if (game.getGameManager().getPhase() == GamePhase.POST) {
+			cancel();
+		}
+
 		if (counter == 15) {
 			Bukkit.getServer().broadcastMessage(ChatColor.RED + "15 minutes remain in the game.");
 		}
@@ -34,13 +38,9 @@ public class GameCounter extends BukkitRunnable {
 		}
 
 		if (counter <= 0) {
-			Bukkit.getServer().broadcastMessage(
-					ChatColor.RED + "The game is over, and nobody reached 3 captures! Calculating results...");
+			Bukkit.getServer().broadcastMessage(ChatColor.RED + "The game is over! Calculating results...");
 			if (game.getTeamManager().isDraw()) {
 				Bukkit.getServer().broadcastMessage(ChatColor.RED + "It was a draw!");
-			} else {
-				Bukkit.getServer().broadcastMessage(
-						ChatColor.RED + "Team " + game.getTeamManager().getWinner().getName() + " has won!");
 			}
 			game.end();
 			this.cancel();

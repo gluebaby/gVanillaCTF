@@ -13,6 +13,8 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import com.boydti.fawe.util.task.TaskBuilder;
+
 import me.undeadguppy.vanillactf.VanillaCTF;
 import me.undeadguppy.vanillactf.teams.Team;
 import net.md_5.bungee.api.ChatColor;
@@ -28,16 +30,13 @@ public class WorldManager {
 
 	private final Location bSpawn;
 	private final Location aSpawn;
-	private final Location worldCenter;
 	private Location aFlag;
 	private Location bFlag;
 	private World voidWorld;
-	private Cuboid forcefieldA;
-	private Cuboid forcefieldB;
+	private Cuboid forcefield;
 	private boolean resetting;
 	private VanillaCTF ctf;
 	private HashMap<Team, Boolean> flagDropped;
-	private HashMap<Location, Material> ffBlocks;
 
 	public Location getSpawnLocation(World world, int x, int z) {
 		int i = 255;
@@ -52,6 +51,7 @@ public class WorldManager {
 	public void reset() {
 		bFlag = new Location(Bukkit.getWorld("world"), 500, 100, 250);
 		aFlag = new Location(Bukkit.getWorld("world"), 500, 100, 750);
+
 		flagDropped.clear();
 	}
 
@@ -59,11 +59,9 @@ public class WorldManager {
 		this.ctf = core;
 		bSpawn = getSpawnLocation(Bukkit.getWorld("world"), 490, 250);
 		aSpawn = getSpawnLocation(Bukkit.getWorld("world"), 490, 750);
-		worldCenter = getSpawnLocation(Bukkit.getWorld("world"), 0, 0);
 		bFlag = new Location(Bukkit.getWorld("world"), 500, 100, 250);
 		aFlag = new Location(Bukkit.getWorld("world"), 500, 100, 750);
-		voidWorld = Bukkit.getWorld("limbo");
-		this.ffBlocks = new HashMap<Location, Material>();
+		voidWorld = Bukkit.getServer().getWorld("limbo");
 		this.flagDropped = new HashMap<Team, Boolean>();
 		flagDropped.put(Team.AARDVARK, false);
 		flagDropped.put(Team.BADGER, false);
@@ -110,10 +108,6 @@ public class WorldManager {
 		return aSpawn;
 	}
 
-	public Location getCenter() {
-		return worldCenter;
-	}
-
 	public World getLimbo() {
 		return voidWorld;
 	}
@@ -137,17 +131,21 @@ public class WorldManager {
 				bTower.setY(i);
 
 			}
+			setFlagLocation(Team.BADGER, new Location(Bukkit.getWorld("world"), 500, 100, 250));
+			setFlagLocation(Team.AARDVARK, new Location(Bukkit.getWorld("world"), 500, 100, 750));
 			getFlagLocation(Team.AARDVARK).getBlock().setType(Material.NETHERRACK);
 			getFlagLocation(Team.BADGER).getBlock().setType(Material.SOUL_SAND);
+			setFlagDropped(Team.AARDVARK, false);
+			setFlagDropped(Team.BADGER, false);
 		}
 	}
 
-	private boolean deleteWorld(File path) {
+	public boolean deleteDirectory(File path) {
 		if (path.exists()) {
-			File files[] = path.listFiles();
+			File[] files = path.listFiles();
 			for (int i = 0; i < files.length; i++) {
 				if (files[i].isDirectory()) {
-					deleteWorld(files[i]);
+					deleteDirectory(files[i]);
 				} else {
 					files[i].delete();
 				}
@@ -156,7 +154,7 @@ public class WorldManager {
 		return (path.delete());
 	}
 
-	private void setupWorldBorder() {
+	public void setupWorldBorder() {
 		if (Bukkit.getWorld("world") != null) {
 			Bukkit.getWorld("world").getWorldBorder().reset();
 			Bukkit.getWorld("world").getWorldBorder().setCenter(500, 500);
@@ -167,38 +165,42 @@ public class WorldManager {
 		}
 	}
 
-	public Cuboid getForcefieldA() {
-		return forcefieldA;
-	}
-
-	public Cuboid getForcefieldB() {
-		return forcefieldB;
+	public Cuboid getForcefield() {
+		return forcefield;
 	}
 
 	public void setupForcefield() {
-		forcefieldA = new Cuboid("world", 275.0, 0.0, 550.0, 725.0, 256.0, 550.0);
-		forcefieldB = new Cuboid("world", 275.0, 0.0, 450.0, 725.0, 256.0, 450.0);
+		forcefield = new Cuboid("world", 275.0, 0.0, 501.0, 725.0, 256.0, 499.0);
+		new TaskBuilder().syncWhenFree(new TaskBuilder.SplitTask(20) {
 
-		for (Block block : forcefieldA) {
-			ffBlocks.put(block.getLocation(), block.getType());
-			if (block.getType() == Material.AIR || block.getType() == Material.WATER) {
-				block.setType(Material.BARRIER);
+			@Override
+			public Object exec(Object arg0) {
+				for (Block block : forcefield) {
+					if (block.getType() == Material.AIR || block.getType() == Material.WATER) {
+						block.setType(Material.BARRIER);
+						split();
+					}
+				}
+				return null;
 			}
-		}
-
-		for (Block block : forcefieldB) {
-			ffBlocks.put(block.getLocation(), block.getType());
-			if (block.getType() == Material.AIR || block.getType() == Material.WATER) {
-				block.setType(Material.BARRIER);
-			}
-		}
-
+		}).build();
 	}
 
-	public void resetFFBlocks() {
-		for (Location loc : ffBlocks.keySet()) {
-			loc.getBlock().setType(ffBlocks.get(loc));
+	public void removeForcefield() {
+		if (forcefield != null) {
+			new TaskBuilder().syncWhenFree(new TaskBuilder.SplitTask(20) {
 
+				@Override
+				public Object exec(Object arg0) {
+					for (Block block : forcefield) {
+						if (block.getType() == Material.BARRIER) {
+							block.setType(Material.AIR);
+							split();
+						}
+					}
+					return null;
+				}
+			}).build();
 		}
 	}
 
@@ -206,7 +208,7 @@ public class WorldManager {
 		if (!isResetting()) {
 			resetting = true;
 			for (Player player : Bukkit.getOnlinePlayers()) {
-				player.teleport(new Location(Bukkit.getWorld("voidWorld"), 0, 0, 0));
+				player.teleport(new Location(Bukkit.getServer().createWorld(new WorldCreator("limbo")), 0, 0, 0));
 				player.setInvulnerable(true);
 				player.getInventory().clear();
 				player.setHealth(20);
@@ -216,11 +218,10 @@ public class WorldManager {
 				// unload world
 				Bukkit.getServer().unloadWorld(Bukkit.getWorld("world"), true);
 				// delete world
-				deleteWorld(Bukkit.getWorld("world").getWorldFolder());
+				deleteDirectory(Bukkit.getWorld("world").getWorldFolder());
 			}
 			// Create new world
 			Bukkit.getServer().createWorld(new WorldCreator("world"));
-			setupWorldBorder();
 			new BukkitRunnable() {
 
 				private int counter = 10;
@@ -231,6 +232,7 @@ public class WorldManager {
 					if (counter <= 0) {
 
 						Bukkit.getServer().broadcastMessage(ChatColor.RED + "Teleporting!");
+
 						for (Player p : Bukkit.getServer().getOnlinePlayers()) {
 							p.teleport(getSpawnLocation(Bukkit.getWorld("world"), 500, 500));
 							p.setHealth(20);
@@ -238,6 +240,7 @@ public class WorldManager {
 							p.setInvulnerable(false);
 							p.getInventory().clear();
 							p.setGameMode(GameMode.ADVENTURE);
+
 						}
 						cancel();
 						return;
@@ -254,8 +257,27 @@ public class WorldManager {
 		}
 	}
 
-	public void recoverFlag(Team team) {
-		// TODO Auto-generated method stub
+	// Bflag is at 500, 100, 250
+	// Aflag is at 500, 100, 750
 
+	public void recoverFlag(Team team) {
+		if (isFlagDropped(team)) {
+			switch (team) {
+			case AARDVARK:
+				setFlagDropped(team, false);
+				setFlagLocation(team, new Location(Bukkit.getWorld("world"), 500, 100, 750));
+				Bukkit.getWorld("world").getBlockAt(new Location(Bukkit.getWorld("world"), 500, 100, 750))
+						.setType(Material.NETHERRACK);
+				break;
+			case BADGER:
+				setFlagDropped(team, false);
+				setFlagLocation(team, new Location(Bukkit.getWorld("world"), 500, 100, 250));
+				Bukkit.getWorld("world").getBlockAt(new Location(Bukkit.getWorld("world"), 500, 100, 250))
+						.setType(Material.SOUL_SAND);
+				break;
+			default:
+
+			}
+		}
 	}
 }

@@ -10,6 +10,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import me.undeadguppy.vanillactf.game.Game;
 import me.undeadguppy.vanillactf.game.GameCounter;
 import me.undeadguppy.vanillactf.game.GameManager;
+import me.undeadguppy.vanillactf.game.PreCounter;
 import me.undeadguppy.vanillactf.listeners.PlayerListeners;
 import me.undeadguppy.vanillactf.teams.Team;
 import me.undeadguppy.vanillactf.teams.TeamManager;
@@ -20,11 +21,15 @@ public class VanillaCTF extends JavaPlugin {
 //B = SOULSAND
 	private Game game;
 
+	public Game getGame() {
+		return game;
+	}
+
 	@Override
 	public void onEnable() {
 
 		this.game = new Game(this, new GameManager(), new WorldManager(this), new TeamManager(game),
-				new GameCounter(game));
+				new GameCounter(game), new PreCounter(game));
 		Bukkit.getServer().getPluginManager().registerEvents(new PlayerListeners(game), this);
 
 	}
@@ -54,7 +59,20 @@ public class VanillaCTF extends JavaPlugin {
 				}
 			}
 			String list = sb.toString();
+			sender.sendMessage("PLAYERS:");
 			sender.sendMessage(list);
+		} else if (cmd.getName().equalsIgnoreCase("cancel")) {
+			if (sender.getName().equals("Undead_Guppy")) {
+				if (!game.isRunning()) {
+					sender.sendMessage("Game's Not running.");
+					return true;
+				}
+				game.end();
+
+			} else {
+				sender.sendMessage("No.");
+				return true;
+			}
 		}
 
 		return true;

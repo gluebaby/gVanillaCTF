@@ -3,6 +3,9 @@ author: Undead_Guppy
 version: Beta 1.0
 main: me.undeadguppy.vanillactf.VanillaCTF
 api-version: 1.13
+depend:
+- FastAsyncWorldEdit
 commands:
    list: null
    begin: null
+   cancel: null
