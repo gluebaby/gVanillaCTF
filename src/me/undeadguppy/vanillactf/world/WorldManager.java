@@ -173,7 +173,6 @@ public class WorldManager {
 		forcefield = new Cuboid("world", 275.0, 0.0, 501.0, 725.0, 256.0, 499.0);
 		new TaskBuilder().syncWhenFree(new TaskBuilder.SplitTask(20) {
 
-			@Override
 			public Object exec(Object arg0) {
 				for (Block block : forcefield) {
 					if (block.getType() == Material.AIR || block.getType() == Material.WATER) {
@@ -190,7 +189,6 @@ public class WorldManager {
 		if (forcefield != null) {
 			new TaskBuilder().syncWhenFree(new TaskBuilder.SplitTask(20) {
 
-				@Override
 				public Object exec(Object arg0) {
 					for (Block block : forcefield) {
 						if (block.getType() == Material.BARRIER) {
